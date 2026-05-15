@@ -7,7 +7,7 @@
 <title>Dashboard Cobertura OQ</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
 <style>
 
 body{
@@ -464,54 +464,71 @@ function graficas(data){
   // PRIORIDADES
   // =========================
 
-  new Chart(
-    document.getElementById(
-      "graficaPrioridad"
-    ),
-    {
+ new Chart(
+  document.getElementById(
+    "graficaPrioridad"
+  ),
+  {
 
-      type:"bar",
+    type:"bar",
 
-      data:{
+    data:{
 
-        labels:
+      labels:
+        data.prioridades
+        .map(x =>
+          "Prioridad " + x.prioridad
+        ),
+
+      datasets:[{
+
+        label:"% Cumplimiento",
+
+        data:
           data.prioridades
-          .map(x =>
-            "Prioridad " + x.prioridad
-          ),
+          .map(x => x.porcentaje)
 
-        datasets:[{
+      }]
+    },
 
-          label:"% Cumplimiento",
+    options:{
 
-          data:
-            data.prioridades
-            .map(x => x.porcentaje)
+      responsive:true,
 
-        }]
+      scales:{
+        x:{
+          max:100,
+          beginAtZero:true
+        }
       },
 
-      options:{
+      indexAxis:"y",
 
-        responsive:true,
+      plugins:{
 
-        scales:{
-          x:{
-            max:100,
-            beginAtZero:true
-          }
+        legend:{
+          display:false
         },
 
-        indexAxis:"y",
+        datalabels:{
 
-        plugins:{
-          legend:{
-            display:false
+          anchor:"end",
+
+          align:"right",
+
+          formatter:(value) => value + "%",
+
+          font:{
+            weight:"bold",
+            size:14
           }
         }
       }
-    }
-  );
+    },
+
+    plugins:[ChartDataLabels]
+  }
+);
 
   // =========================
   // ESTADOS
