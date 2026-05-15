@@ -535,37 +535,69 @@ function graficas(data){
   // =========================
 
   new Chart(
-    document.getElementById(
-      "graficaEstados"
-    ),
-    {
+  document.getElementById(
+    "graficaEstados"
+  ),
+  {
 
-      type:"doughnut",
+    type:"doughnut",
 
-      data:{
+    data:{
 
-        labels:[
-          "Cubiertas",
-          "En proceso",
-          "Pendientes"
-        ],
+      labels:[
+        "Cubiertas",
+        "En proceso",
+        "Pendientes"
+      ],
 
-        datasets:[{
+      datasets:[{
 
-          data:[
-            data.cubiertas,
-            data.enProceso,
-            data.pendientes
-          ]
+        data:[
+          data.cubiertas,
+          data.enProceso,
+          data.pendientes
+        ]
 
-        }]
-      },
+      }]
+    },
 
-      options:{
-        responsive:true
+    options:{
+
+      responsive:true,
+
+      plugins:{
+
+        datalabels:{
+
+          color:"#fff",
+
+          formatter:(value, ctx) => {
+
+            const dataArr =
+              ctx.chart.data.datasets[0].data;
+
+            const total =
+              dataArr.reduce((a,b)=>a+b,0);
+
+            const porcentaje =
+              total
+                ? Math.round((value / total) * 100)
+                : 0;
+
+            return porcentaje + "%";
+          },
+
+          font:{
+            weight:"bold",
+            size:16
+          }
+        }
       }
-    }
-  );
+    },
+
+    plugins:[ChartDataLabels]
+  }
+);
 
   // =========================
   // TOP COBERTURA
