@@ -105,8 +105,8 @@ canvas{ width:100%!important; max-height:420px; }
 const API = "https://script.google.com/macros/s/AKfycbxbzO1J8Dl0v4_NZ624FL9U7i4uIZzFhztAft7eyOWyQoGdR59VCxlpjUwrmgbIkZcKYA/exec";
 let tareasGlobal = [];
 
-// CONSULTA EL NUEVO ENDPOINT DE COBERTURA DE TAREAS
-fetch(API + "?dashboardConsulta=cobertura")
+// CORRECCIÓN AQUÍ: Apuntamos exactamente al parámetro de cobertura esperado por tu Apps Script
+fetch(API + "?dashboardCobertura=oq")
 .then(r => r.json())
 .then(data => {
   if(data.error) { alert(data.error); return; }
@@ -127,7 +127,7 @@ fetch(API + "?dashboardConsulta=cobertura")
 })
 .catch(err => {
   console.error(err);
-  alert("No fue posible cargar la información del Dashboard.");
+  alert("No fue posible cargar la información del Dashboard de Cobertura.");
 });
 
 function cargarFiltros(){
