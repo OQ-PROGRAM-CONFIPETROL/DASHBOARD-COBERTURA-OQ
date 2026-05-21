@@ -120,18 +120,23 @@ th{
   padding:4px 10px;
   border-radius:8px;
   font-weight:bold;
+  display:inline-block;
 }
 
+/* Clases CSS corregidas para admitir espacios */
 .CUBIERTA{
   background:#c8f7c5;
+  color: #1e4620;
 }
 
 .ENPROCESO{
   background:#ffe7a3;
+  color: #5c4300;
 }
 
 .PENDIENTE{
   background:#ffc7c7;
+  color: #611a1a;
 }
 
 canvas{
@@ -294,350 +299,193 @@ canvas{
 
 <script>
 
-const API =
-"https://script.google.com/macros/s/AKfycbxbzO1J8Dl0v4_NZ624FL9U7i4uIZzFhztAft7eyOWyQoGdR59VCxlpjUwrmgbIkZcKYA/exec";
+const API = "https://script.google.com/macros/s/AKfycbxbzO1J8Dl0v4_NZ624FL9U7i4uIZzFhztAft7eyOWyQoGdR59VCxlpjUwrmgbIkZcKYA/exec";
 
 let tareasGlobal = [];
 
-fetch(API + "?dashboardCobertura=oq")
-
+// CORRECCIÓN CLAVE: Cambiado ?dashboardCobertura=oq por ?dashboardConsulta=oq
+fetch(API + "?dashboardConsulta=oq")
 .then(r => r.json())
-
 .then(data => {
 
   tareasGlobal = data.tareas || [];
 
-  document.getElementById("totalTareas").textContent =
-    data.totalTareas || 0;
-
-  document.getElementById("cubiertas").textContent =
-    data.cubiertas || 0;
-
-  document.getElementById("enProceso").textContent =
-    data.enProceso || 0;
-
-  document.getElementById("pendientes").textContent =
-    data.pendientes || 0;
-
-  document.getElementById("porcentajeGeneral").textContent =
-    (data.porcentajeGeneral || 0) + "%";
-
-  document.getElementById("totalTecnicos").textContent =
-    data.totalTecnicos || 0;
-
-  document.getElementById("totalProveedores").textContent =
-    data.totalProveedores || 0;
+  document.getElementById("totalTareas").textContent = data.totalTareas || 0;
+  document.getElementById("cubiertas").textContent = data.cubiertas || 0;
+  document.getElementById("enProceso").textContent = data.enProceso || 0;
+  document.getElementById("pendientes").textContent = data.pendientes || 0;
+  document.getElementById("porcentajeGeneral").textContent = (data.porcentajeGeneral || 0) + "%";
+  document.getElementById("totalTecnicos").textContent = data.totalTecnicos || 0;
+  document.getElementById("totalProveedores").textContent = data.totalProveedores || 0;
 
   cargarFiltros();
-
   renderTabla();
-
   graficas(data);
 
 })
-
 .catch(err => {
-
   console.error(err);
-
-  alert("No fue posible cargar la información.");
-
+  alert("No fue posible cargar la información. Revisa la consola para más detalles.");
 });
 
 function cargarFiltros(){
+  const clasificaciones = [...new Set(
+    tareasGlobal
+    .map(t => t.clasificacion)
+    .filter(Boolean)
+  )].sort();
 
-  const clasificaciones =
-    [...new Set(
-      tareasGlobal
-      .map(t => t.clasificacion)
-      .filter(Boolean)
-    )].sort();
-
-  const filtro =
-    document.getElementById(
-      "filtroClasificacion"
-    );
+  const filtro = document.getElementById("filtroClasificacion");
 
   clasificaciones.forEach(c => {
-
-    const opt =
-      document.createElement("option");
-
+    const opt = document.createElement("option");
     opt.value = c;
-
     opt.textContent = c;
-
     filtro.appendChild(opt);
-
   });
 }
 
 function renderTabla(){
-
-  const buscar =
-    document.getElementById("buscar")
-    .value
-    .toLowerCase();
-
-  const prioridad =
-    document.getElementById(
-      "filtroPrioridad"
-    ).value;
-
-  const estado =
-    document.getElementById(
-      "filtroEstado"
-    ).value;
-
-  const clasificacion =
-    document.getElementById(
-      "filtroClasificacion"
-    ).value;
-
-  const tbody =
-    document.getElementById("tabla");
+  const buscar = document.getElementById("buscar").value.toLowerCase();
+  const prioridad = document.getElementById("filtroPrioridad").value;
+  const estado = document.getElementById("filtroEstado").value;
+  const clasificacion = document.getElementById("filtroClasificacion").value;
+  const tbody = document.getElementById("tabla");
 
   tbody.innerHTML = "";
 
-  const filtrados =
-    tareasGlobal.filter(t => {
-
-      const texto =
-        `${t.idTarea} ${t.tarea}`
-        .toLowerCase();
-
-      return (
-        (!buscar || texto.includes(buscar)) &&
-        (!prioridad || t.prioridad === prioridad) &&
-        (!estado || t.estado === estado) &&
-        (!clasificacion || t.clasificacion === clasificacion)
-      );
-
-    });
+  const filtrados = tareasGlobal.filter(t => {
+    const texto = `${t.idTarea} ${t.tarea}`.toLowerCase();
+    return (
+      (!buscar || texto.includes(buscar)) &&
+      (!prioridad || String(t.prioridad) === String(prioridad)) &&
+      (!estado || String(t.estado).toUpperCase() === String(estado).toUpperCase()) &&
+      (!clasificacion || t.clasificacion === clasificacion)
+    );
+  });
 
   filtrados.forEach(t => {
+    // Reemplaza espacios de "EN PROCESO" para convertirlo en la clase CSS "ENPROCESO"
+    const estadoClase = t.estado ? String(t.estado).replace(/\s/g,'').toUpperCase() : "";
 
-    const estadoClase =
-      t.estado.replace(/\s/g,'');
-
-    const tr =
-      document.createElement("tr");
-
+    const tr = document.createElement("tr");
     tr.innerHTML = `
-
       <td>${t.idTarea}</td>
-
       <td>${t.tarea}</td>
-
-      <td>${t.clasificacion}</td>
-
+      <td>${t.clasificacion || "—"}</td>
       <td>${t.prioridad}</td>
-
       <td>${t.tecnicos}</td>
-
       <td>${t.proveedores}</td>
-
       <td>${t.cobertura}</td>
-
       <td>${t.nivel}</td>
-
       <td>
         <span class="estado ${estadoClase}">
           ${t.estado}
         </span>
       </td>
-
-      <td>
-        ${t.fechaProgramada || "—"}
-      </td>
-
+      <td>${t.fechaProgramada || "—"}</td>
     `;
-
     tbody.appendChild(tr);
-
   });
 }
 
 function graficas(data){
-
   // =========================
   // PRIORIDADES
   // =========================
-
- new Chart(
-  document.getElementById(
-    "graficaPrioridad"
-  ),
-  {
-
-    type:"bar",
-
-    data:{
-
-      labels:
-        data.prioridades
-        .map(x =>
-          "Prioridad " + x.prioridad
-        ),
-
-      datasets:[{
-
-        label:"% Cumplimiento",
-
-        data:
-          data.prioridades
-          .map(x => x.porcentaje)
-
-      }]
-    },
-
-    options:{
-
-      responsive:true,
-
-      scales:{
-        x:{
-          max:100,
-          beginAtZero:true
-        }
+  new Chart(
+    document.getElementById("graficaPrioridad"),
+    {
+      type:"bar",
+      data:{
+        labels: (data.prioridades || []).map(x => "Prioridad " + x.prioridad),
+        datasets:[{
+          label:"% Cumplimiento",
+          data: (data.prioridades || []).map(x => x.porcentaje),
+          backgroundColor: '#0b2340',
+          borderRadius: 6
+        }]
       },
-
-      indexAxis:"y",
-
-      plugins:{
-
-        legend:{
-          display:false
+      options:{
+        responsive:true,
+        scales:{
+          x:{
+            max:100,
+            beginAtZero:true
+          }
         },
-
-        datalabels:{
-
-          anchor:"end",
-
-          align:"right",
-
-          formatter:(value) => value + "%",
-
-          font:{
-            weight:"bold",
-            size:14
+        indexAxis:"y",
+        plugins:{
+          legend:{ display:false },
+          datalabels:{
+            anchor:"end",
+            align:"right",
+            formatter:(value) => value + "%",
+            font:{ weight:"bold", size:12 }
           }
         }
-      }
-    },
-
-    plugins:[ChartDataLabels]
-  }
-);
+      },
+      plugins:[ChartDataLabels]
+    }
+  );
 
   // =========================
   // ESTADOS
   // =========================
-
   new Chart(
-  document.getElementById(
-    "graficaEstados"
-  ),
-  {
-
-    type:"doughnut",
-
-    data:{
-
-      labels:[
-        "Cubiertas",
-        "En proceso",
-        "Pendientes"
-      ],
-
-      datasets:[{
-
-        data:[
-          data.cubiertas,
-          data.enProceso,
-          data.pendientes
-        ]
-
-      }]
-    },
-
-    options:{
-
-      responsive:true,
-
-      plugins:{
-
-        datalabels:{
-
-          color:"#fff",
-
-          formatter:(value, ctx) => {
-
-            const dataArr =
-              ctx.chart.data.datasets[0].data;
-
-            const total =
-              dataArr.reduce((a,b)=>a+b,0);
-
-            const porcentaje =
-              total
-                ? Math.round((value / total) * 100)
-                : 0;
-
-            return porcentaje + "%";
-          },
-
-          font:{
-            weight:"bold",
-            size:16
+    document.getElementById("graficaEstados"),
+    {
+      type:"doughnut",
+      data:{
+        labels:["Cubiertas", "En proceso", "Pendientes"],
+        datasets:[{
+          data:[
+            data.cubiertas || 0,
+            data.enProceso || 0,
+            data.pendientes || 0
+          ],
+          backgroundColor: ['#c8f7c5', '#ffe7a3', '#ffc7c7']
+        }]
+      },
+      options:{
+        responsive:true,
+        plugins:{
+          datalabels:{
+            color:"#111",
+            formatter:(value, ctx) => {
+              const dataArr = ctx.chart.data.datasets[0].data;
+              const total = dataArr.reduce((a,b)=>a+b,0);
+              const porcentaje = total ? Math.round((value / total) * 100) : 0;
+              return value > 0 ? porcentaje + "%" : "";
+            },
+            font:{ weight:"bold", size:14 }
           }
         }
-      }
-    },
-
-    plugins:[ChartDataLabels]
-  }
-);
+      },
+      plugins:[ChartDataLabels]
+    }
+  );
 
   // =========================
   // TOP COBERTURA
   // =========================
-
   new Chart(
-    document.getElementById(
-      "graficaCobertura"
-    ),
+    document.getElementById("graficaCobertura"),
     {
-
       type:"bar",
-
       data:{
-
-        labels:
-          data.topCobertura
-          .map(x =>
-            cortarTexto(x.tarea,25)
-          ),
-
+        labels: (data.topCobertura || []).map(x => cortarTexto(x.tarea,25)),
         datasets:[{
-
           label:"Cobertura",
-
-          data:
-            data.topCobertura
-            .map(x => x.cobertura)
-
+          data: (data.topCobertura || []).map(x => x.cobertura),
+          backgroundColor: '#3a7bd5',
+          borderRadius: 6
         }]
       },
-
       options:{
-
         responsive:true,
-
         plugins:{
-          legend:{
-            display:false
-          }
+          legend:{ display:false }
         }
       }
     }
@@ -645,10 +493,8 @@ function graficas(data){
 }
 
 function cortarTexto(txt,max){
-
-  return txt.length > max
-    ? txt.substring(0,max) + "..."
-    : txt;
+  if(!txt) return "";
+  return txt.length > max ? txt.substring(0,max) + "..." : txt;
 }
 
 </script>
