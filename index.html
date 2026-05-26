@@ -60,7 +60,7 @@ canvas{ width:100%!important; max-height:420px; }
 </div>
 
 <div class="box">
-  <h3>Detalle de tareas</h3>
+  <h3>Detaille de tareas</h3>
   <div class="filters">
     <input id="buscar" placeholder="Buscar tarea..." oninput="renderTabla()">
     <select id="filtroPrioridad" onchange="renderTabla()">
@@ -105,12 +105,10 @@ canvas{ width:100%!important; max-height:420px; }
 const API = "https://script.google.com/macros/s/AKfycbxbzO1J8Dl0v4_NZ624FL9U7i4uIZzFhztAft7eyOWyQoGdR59VCxlpjUwrmgbIkZcKYA/exec";
 let tareasGlobal = [];
 
-// Variables globales para almacenar las instancias de los gráficos
 let chartPrioridad = null;
 let chartEstados = null;
 let chartCobertura = null;
 
-// Inicialización de la carga de datos
 fetch(API + "?dashboardCobertura=oq")
 .then(r => r.json())
 .then(data => {
@@ -120,7 +118,7 @@ fetch(API + "?dashboardCobertura=oq")
 
   cargarFiltros();
   inicializarGraficas();
-  renderTabla(); // renderTabla se encargará de calcular totales y pintar datos iniciales
+  renderTabla(); 
 })
 .catch(err => {
   console.error(err);
@@ -138,7 +136,6 @@ function cargarFiltros(){
 }
 
 function inicializarGraficas(){
-  // 1. INICIALIZAR GRÁFICA PRIORIDADES (VACÍA)
   chartPrioridad = new Chart(document.getElementById("graficaPrioridad"), {
     type: "bar",
     data: { labels: [], datasets: [{ label: "% Cumplimiento", data: [], backgroundColor: '#0b2340', borderRadius: 6 }] },
@@ -148,13 +145,17 @@ function inicializarGraficas(){
       indexAxis: "y",
       plugins: {
         legend: { display: false },
-        datalabels: { anchor: "end", align: "right", formatter: (value) => value + "%", font: { weight: "bold", size: 12 } }
+        datalabels: { 
+          anchor: "end", 
+          align: "right", 
+          formatter: (value) => String(value) + "%", 
+          font: { weight: "bold", size: 12 } 
+        }
       }
     },
     plugins: [ChartDataLabels]
   });
 
-  // 2. INICIALIZAR GRÁFICA ESTADOS (VACÍA)
   chartEstados = new Chart(document.getElementById("graficaEstados"), {
     type: "doughnut",
     data: { labels: ["Cubiertas", "En proceso", "Pendientes"], datasets: [{ data: [0, 0, 0], backgroundColor: ['#c8f7c5', '#ffe7a3', '#ffc7c7'] }] },
@@ -165,8 +166,8 @@ function inicializarGraficas(){
           color: "#111",
           formatter: (value, ctx) => {
             const dataArr = ctx.chart.data.datasets[0].data;
-            const total = dataArr.reduce((a, b) => a + b, 0);
-            return total ? Math.round((value / total) * 100) + "%" : "0%";
+            const total = dataArr.reduce((a, b) => Number(a) + Number(b), 0);
+            return total ? String(Math.round((value / total) * 100)) + "%" : "0%";
           },
           font: { weight: "bold", size: 14 }
         }
@@ -175,7 +176,6 @@ function inicializarGraficas(){
     plugins: [ChartDataLabels]
   });
 
-  // 3. INICIALIZAR GRÁFICA TOP COBERTURA (VACÍA)
   chartCobertura = new Chart(document.getElementById("graficaCobertura"), {
     type: "bar",
     data: { labels: [], datasets: [{ label: "Cobertura", data: [], backgroundColor: '#3a7bd5', borderRadius: 6 }] },
@@ -192,7 +192,6 @@ function renderTabla(){
 
   tbody.innerHTML = "";
 
-  // 1. Filtrar los datos en tiempo real
   const filtrados = tareasGlobal.filter(t => {
     const texto = `${t.requisito} ${t.tarea}`.toLowerCase();
     return (
@@ -203,7 +202,6 @@ function renderTabla(){
     );
   });
 
-  // 2. Recalcular contadores basados en la selección filtrada
   let cubiertas = 0, enProceso = 0, pendientes = 0;
   let totalTecnicos = 0, totalProveedores = 0;
 
@@ -225,28 +223,26 @@ function renderTabla(){
     if (prioridadStats[t.prioridad]) {
       prioridadStats[t.prioridad].total++;
       if (t.estado === "CUBIERTA") {
-  prioridadStats[t.prioridad].cubiertas++;
-}
+        prioridadStats[t.prioridad].cubiertas++;
+      }
     }
 
-    // Insertar fila en la tabla
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${t.requisito}</td>
-      <td>${t.tarea}</td>
+      <td>${t.requisito || ""}</td>
+      <td>${t.tarea || ""}</td>
       <td>${t.clasificacion || "—"}</td>
-      <td>${t.prioridad}</td>
-      <td>${t.tecnicos}</td>
-      <td>${t.proveedores}</td>
-      <td>${t.cobertura}</td>
-      <td>${t.nivel}</td>
-      <td><span class="estado ${estadoClase}">${t.estado}</span></td>
-      <td>${t.fechaProgramada}</td>
+      <td>${t.prioridad || ""}</td>
+      <td>${t.tecnicos !== undefined ? t.tecnicos : 0}</td>
+      <td>${t.proveedores !== undefined ? t.proveedores : 0}</td>
+      <td>${t.cobertura !== undefined ? t.cobertura : 0}</td>
+      <td>${t.nivel || "—"}</td>
+      <td><span class="estado ${estadoClase}">${t.estado || "PENDIENTE"}</span></td>
+      <td>${t.fechaProgramada || "—"}</td>
     `;
     tbody.appendChild(tr);
   });
 
-  // 3. Actualizar los textos de las tarjetas KPI superiores
   const totalTareas = filtrados.length;
   document.getElementById("totalTareas").textContent = totalTareas;
   document.getElementById("cubiertas").textContent = cubiertas;
@@ -254,12 +250,9 @@ function renderTabla(){
   document.getElementById("pendientes").textContent = pendientes;
   document.getElementById("totalTecnicos").textContent = totalTecnicos;
   document.getElementById("totalProveedores").textContent = totalProveedores;
-  document.getElementById("porcentajeGeneral").textContent = totalTareas > 0 ? Math.round((cubiertas / totalTareas) * 100) + "%" : "0%";
+  document.getElementById("porcentajeGeneral").textContent = totalTareas > 0 ? String(Math.round((cubiertas / totalTareas) * 100)) + "%" : "0%";
 
-  // 4. ACTUALIZAR LAS GRÁFICAS EN TIEMPO REAL SI YA FUERON CREADAS
   if (chartPrioridad && chartEstados && chartCobertura) {
-    
-    // Actualizar Gráfica de Prioridades
     const nuevosDatosPrioridad = Object.keys(prioridadStats).map(pri => {
       const tot = prioridadStats[pri].total;
       const cub = prioridadStats[pri].cubiertas;
@@ -272,17 +265,15 @@ function renderTabla(){
     chartPrioridad.data.datasets[0].data = nuevosDatosPrioridad.map(x => x.porcentaje);
     chartPrioridad.update();
 
-    // Actualizar Gráfica de Estados (Dona)
     chartEstados.data.datasets[0].data = [cubiertas, enProceso, pendientes];
     chartEstados.update();
 
-    // Actualizar Gráfica del Top 10 Coberturas filtradas
     const topFiltrado = [...filtrados]
-      .sort((a, b) => b.cobertura - a.cobertura)
+      .sort((a, b) => (Number(b.cobertura) || 0) - (Number(a.cobertura) || 0))
       .slice(0, 10);
     
     chartCobertura.data.labels = topFiltrado.map(x => cortarTexto(x.tarea, 25));
-    chartCobertura.data.datasets[0].data = topFiltrado.map(x => x.cobertura);
+    chartCobertura.data.datasets[0].data = topFiltrado.map(x => Number(x.cobertura) || 0);
     chartCobertura.update();
   }
 }
