@@ -194,7 +194,7 @@ function renderTabla(){
 
   // 1. Filtrar los datos en tiempo real
   const filtrados = tareasGlobal.filter(t => {
-    const texto = `${t.idTarea} ${t.tarea}`.toLowerCase();
+    const texto = `${t.requisito} ${t.tarea}`.toLowerCase();
     return (
       (!buscar || texto.includes(buscar)) &&
       (!prioridad || String(t.prioridad) === String(prioridad)) &&
@@ -224,7 +224,9 @@ function renderTabla(){
 
     if (prioridadStats[t.prioridad]) {
       prioridadStats[t.prioridad].total++;
-      if (t.estado === "CUBIERTA") Greenwich = prioridadStats[t.prioridad].cubiertas++;
+      if (t.estado === "CUBIERTA") {
+  prioridadStats[t.prioridad].cubiertas++;
+}
     }
 
     // Insertar fila en la tabla
