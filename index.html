@@ -84,7 +84,7 @@ canvas{ width:100%!important; max-height:420px; }
     <table>
       <thead>
         <tr>
-          <th>ID</th>
+          <th>REQUISITO</th>
           <th>TAREA</th>
           <th>CLASIFICACIÓN</th>
           <th>PRIORIDAD</th>
@@ -230,7 +230,7 @@ function renderTabla(){
     // Insertar fila en la tabla
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${t.idTarea}</td>
+      <td>${t.requisito}</td>
       <td>${t.tarea}</td>
       <td>${t.clasificacion || "—"}</td>
       <td>${t.prioridad}</td>
