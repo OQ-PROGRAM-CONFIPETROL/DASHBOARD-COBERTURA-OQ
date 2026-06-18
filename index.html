@@ -1,34 +1,227 @@
-function getDashboardCoberturaOQ() {
-  const ss = SpreadsheetApp.getActive();
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard Cobertura OQ</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+<style>
+body{ margin:0; font-family:Arial,Helvetica,sans-serif; background:#0b2340; color:#fff; padding:20px; }
+.logoBox{ display:flex; justify-content:center; margin-bottom:20px; }
+.logoBox img{ max-width:260px; width:100%; background:#fff; padding:12px; border-radius:14px; }
+h1{ text-align:center; margin-bottom:25px; }
+.cards{ display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:15px; margin-bottom:25px; }
+.card { 
+  background:#fff; 
+  color:#111; 
+  border-radius:14px; 
+  padding:18px; 
+  text-align:center; 
+  box-shadow:0 8px 18px rgba(0,0,0,.25); 
+  cursor: pointer; 
+  transition: transform 0.2s, box-shadow 0.2s; 
+}
+.card:hover { 
+  transform: translateY(-4px); 
+  box-shadow: 0 12px 22px rgba(0,0,0,0.3); 
+}
+.card h2{ font-size:15px; margin:0; }
+.valor{ font-size:34px; font-weight:bold; margin-top:10px; }
+.grid{ display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:25px; }
+.box{ background:#fff; color:#111; border-radius:14px; padding:18px; }
+.filters{ display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin-bottom:18px; }
+input,select{ padding:10px; border-radius:8px; border:1px solid #ccc; width:100%; box-sizing:border-box; }
+.tableWrap{ overflow-x:auto; }
+table{ width:100%; border-collapse:collapse; background:#fff; color:#111; }
+th,td{ border:1px solid #ddd; padding:8px; font-size:13px; text-align:left; }
+th{ background:#0b2340; color:#fff; }
+.estado{ padding:4px 10px; border-radius:8px; font-weight:bold; display:inline-block; }
+.CUBIERTA{ background:#c8f7c5; color: #1e4620; }
+.ENPROCESO{ background:#ffe7a3; color: #5c4300; }
+.PENDIENTE{ background:#ffc7c7; color: #611a1a; }
+canvas{ width:100%!important; max-height:420px; }
+@media(max-width:900px){ .grid{ grid-template-columns:1fr; } body{ padding:10px; } th,td{ font-size:11px; padding:6px; } .valor{ font-size:26px; } }
+</style>
+</head>
+<body>
+
+<div class="logoBox">
+  <img src="logo.png.png" alt="CONFIPETROL">
+</div>
+
+<h1>DASHBOARD COBERTURA OQ</h1>
+
+<div class="cards">
+  <div class="card" onclick="filtrarPorTarjeta('')"><h2>Total tareas</h2><div class="valor" id="totalTareas">0</div></div>
+  <div class="card" onclick="filtrarPorTarjeta('CUBIERTA')"><h2>Cubiertas</h2><div class="valor" id="cubiertas">0</div></div>
+  <div class="card" onclick="filtrarPorTarjeta('EN PROCESO')"><h2>En proceso</h2><div class="valor" id="enProceso">0</div></div>
+  <div class="card" onclick="filtrarPorTarjeta('PENDIENTE')"><h2>Pendientes</h2><div class="valor" id="pendientes">0</div></div>
+  <div class="card"><h2>% General</h2><div class="valor" id="porcentajeGeneral">0%</div></div>
+  <div class="card"><h2>Asignaciones Técnicos</h2><div class="valor" id="totalTecnicos">0</div></div>
+  <div class="card" style="background: #eef5fc; border: 1px solid #3a7bd5; cursor: default;"><h2>Personal Capacitado</h2><div class="valor" id="tecnicosCapacitados" style="color: #3a7bd5;">0</div></div>
+  <div class="card"><h2>Proveedores</h2><div class="valor" id="totalProveedores">0</div></div>
+</div>
+
+<div class="grid">
+  <div class="box"><h3>Cumplimiento por prioridad</h3><canvas id="graficaPrioridad"></canvas></div>
+  <div class="box"><h3>Estado de tareas</h3><canvas id="graficaEstados"></canvas></div>
+</div>
+
+<div class="box" style="margin-bottom:25px;">
+  <h3>Top tareas con mayor cobertura</h3>
+  <canvas id="graficaCobertura"></canvas>
+</div>
+
+<div class="box">
+  <h3>Detaille de tareas</h3>
+  <div class="filters">
+    <input id="buscar" placeholder="Buscar tarea..." oninput="renderTabla()">
+    <select id="filtroPrioridad" onchange="renderTabla()">
+      <option value="">Todas las prioridades</option>
+      <option value="1">Prioridad 1</option>
+      <option value="2">Prioridad 2</option>
+      <option value="3">Prioridad 3</option>
+    </select>
+    <select id="filtroEstado" onchange="renderTabla()">
+      <option value="">Todos los estados</option>
+      <option value="CUBIERTA">Cubierta</option>
+      <option value="EN PROCESO">En proceso</option>
+      <option value="PENDIENTE">Pendiente</option>
+    </select>
+    <select id="filtroClasificacion" onchange="renderTabla()">
+      <option value="">Todas las clasificaciones</option>
+    </select>
+  </div>
+
+  <div class="tableWrap">
+    <table>
+      <thead>
+        <tr>
+          <th>REQUISITO</th>
+          <th>TAREA</th>
+          <th>CLASIFICACIÓN</th>
+          <th>PRIORIDAD</th>
+          <th>TÉCNICOS</th>
+          <th>PROVEEDORES</th>
+          <th>COBERTURA</th>
+          <th>NIVEL</th>
+          <th>ESTADO</th>
+          <th>FECHA</th>
+        </tr>
+      </thead>
+      <tbody id="tabla"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+const API = "https://script.google.com/macros/s/AKfycbxbzO1J8Dl0v4_NZ624FL9U7i4uIZzFhztAft7eyOWyQoGdR59VCxlpjUwrmgbIkZcKYA/exec";
+let tareasGlobal = [];
+
+let chartPrioridad = null;
+let chartEstados = null;
+let chartCobertura = null;
+
+fetch(API + "?dashboardCobertura=oq")
+.then(r => r.json())
+.then(data => {
+  if(data.error) { alert(data.error); return; }
+
+  tareasGlobal = data.tareas || [];
+
+  cargarFiltros();
+  inicializarGraficas();
   
-  // ==========================================================
-  // NUEVA LÓGICA: CONTAR PERSONAL ÚNICO CAPACITADO
-  // ==========================================================
-  let tecnicosCapacitados = 0;
-  const hojaBD = ss.getSheetByName("BASE DE DATOS");
+  // Renderizar la tabla primero para calcular los totales de la vista activa
+  renderTabla(); 
   
-  if (hojaBD) {
-    const dataBD = hojaBD.getDataRange().getValues();
-    // i = 1 para saltar la fila de los encabezados (Fila 1)
-    for (let i = 1; i < dataBD.length; i++) {
-      const nombre = String(dataBD[i][1] || "").trim(); // Columna B (Nombre)
-      const cap1 = String(dataBD[i][4] || "").trim();   // Columna E (Cap 1)
-      
-      // Si la fila tiene un nombre válido y tiene texto en Cap 1 (evitando celdas vacías o guiones)
-      if (nombre && cap1 && cap1 !== "" && cap1 !== "—" && cap1 !== "-") {
-        tecnicosCapacitados++;
+  // Asignar el valor global proveniente de la pestaña BASE DE DATOS calculada en la API
+  document.getElementById("tecnicosCapacitados").textContent = data.tecnicosCapacitados !== undefined ? data.tecnicosCapacitados : 0;
+})
+.catch(err => {
+  console.error(err);
+  alert("No fue posible cargar la información del Dashboard de Cobertura.");
+});
+
+function cargarFiltros(){
+  const clasificaciones = [...new Set(tareasGlobal.map(t => t.clasificacion).filter(Boolean))].sort();
+  const filtro = document.getElementById("filtroClasificacion");
+  clasificaciones.forEach(c => {
+    const opt = document.createElement("option");
+    opt.value = c; opt.textContent = c;
+    filtro.appendChild(opt);
+  });
+}
+
+function inicializarGraficas(){
+  chartPrioridad = new Chart(document.getElementById("graficaPrioridad"), {
+    type: "bar",
+    data: { labels: [], datasets: [{ label: "% Cumplimiento", data: [], backgroundColor: '#0b2340', borderRadius: 6 }] },
+    options: {
+      responsive: true,
+      scales: { x: { min: 0, max: 100, beginAtZero: true } },
+      indexAxis: "y",
+      plugins: {
+        legend: { display: false },
+        datalabels: { 
+          anchor: "end", 
+          align: "right", 
+          formatter: (value) => String(value) + "%", 
+          font: { weight: "bold", size: 12 } 
+        }
       }
-    }
-  }
-  // ==========================================================
+    },
+    plugins: [ChartDataLabels]
+  });
 
-  const hoja = ss.getSheetByName("MATRIZ_COBERTURA_OQ");
-  if (!hoja) return { error: "No existe MATRIZ_COBERTURA_OQ" };
+  chartEstados = new Chart(document.getElementById("graficaEstados"), {
+    type: "doughnut",
+    data: { labels: ["Cubiertas", "En proceso", "Pendientes"], datasets: [{ data: [0, 0, 0], backgroundColor: ['#c8f7c5', '#ffe7a3', '#ffc7c7'] }] },
+    options: {
+      responsive: true,
+      plugins: {
+        datalabels: {
+          color: "#111",
+          formatter: (value, ctx) => {
+            const dataArr = ctx.chart.data.datasets[0].data;
+            const total = dataArr.reduce((a, b) => Number(a) + Number(b), 0);
+            return total ? String(Math.round((value / total) * 100)) + "%" : "0%";
+          },
+          font: { weight: "bold", size: 14 }
+        }
+      }
+    },
+    plugins: [ChartDataLabels]
+  });
 
-  const data = hoja.getDataRange().getValues();
-  const tareas = [];
+  chartCobertura = new Chart(document.getElementById("graficaCobertura"), {
+    type: "bar",
+    data: { labels: [], datasets: [{ label: "Cobertura", data: [], backgroundColor: '#3a7bd5', borderRadius: 6 }] },
+    options: { responsive: true, plugins: { legend: { display: false } } }
+  });
+}
 
-  let totalTareas = 0, cubiertas = 0, enProceso = 0, pendientes = 0;
+function renderTabla(){
+  const buscar = document.getElementById("buscar").value.toLowerCase();
+  const prioridad = document.getElementById("filtroPrioridad").value;
+  const estado = document.getElementById("filtroEstado").value;
+  const clasificacion = document.getElementById("filtroClasificacion").value;
+  const tbody = document.getElementById("tabla");
+
+  tbody.innerHTML = "";
+
+  const filtrados = tareasGlobal.filter(t => {
+    const texto = `${t.requisito} ${t.tarea}`.toLowerCase();
+    return (
+      (!buscar || texto.includes(buscar)) &&
+      (!prioridad || String(t.prioridad) === String(prioridad)) &&
+      (!estado || String(t.estado).toUpperCase() === String(estado).toUpperCase()) &&
+      (!clasificacion || t.clasificacion === clasificacion)
+    );
+  });
+
+  let cubiertas = 0, enProceso = 0, pendientes = 0;
   let totalTecnicos = 0, totalProveedores = 0;
 
   const prioridadStats = {
@@ -37,90 +230,85 @@ function getDashboardCoberturaOQ() {
     "3": { total: 0, cubiertas: 0 }
   };
 
-  for (let i = 1; i < data.length; i++) {
-    const row = data[i];
-    
-    const tarea = String(row[1] || "").trim();
-    if (!tarea) continue; 
+  filtrados.forEach(t => {
+    const estadoClase = t.estado ? String(t.estado).replace(/\s/g,'').toUpperCase() : "";
+    totalTecnicos += Number(t.tecnicos) || 0;
+    totalProveedores += Number(t.proveedores) || 0;
 
-    let requisito = (row[0] !== undefined && row[0] !== null) ? String(row[0]).trim() : "";
-    
-    if (requisito.length === 10 && /^\d{3}\s-\s\d{4}$/.test(requisito)) {
-      requisito = "0" + requisito;
-    } else if (/^\d{3}$/.test(requisito)) { 
-      requisito = "0" + requisito;
-    }
-    
-    if (!requisito) requisito = "—";
-
-    const clasificacion = String(row[2] || "").trim();
-    const prioridad = String(row[3] || "").trim();
-
-    const tecnicos = Number(row[4]) || 0;
-    const proveedores = Number(row[5]) || 0;
-    const cobertura = Number(row[6]) || 0;
-
-    // Se mantiene tu mapeo actual impecable
-    const estado = String(row[7] || "").trim().toUpperCase(); 
-
-    let fechaFinal = "—";
-    if (row[9] instanceof Date) {
-      fechaFinal = Utilities.formatDate(row[9], Session.getScriptTimeZone(), "dd/MM/yyyy");
-    } else if (row[9]) {
-      fechaFinal = String(row[9]).trim();
-    }
-
-    const observacion = String(row[10] || "").trim(); 
-
-    totalTareas++;
-    totalTecnicos += tecnicos;
-    totalProveedores += proveedores;
-
-    if (estado === "CUBIERTA") cubiertas++;
-    else if (estado === "EN PROCESO") enProceso++;
+    if (t.estado === "CUBIERTA") cubiertas++;
+    else if (t.estado === "EN PROCESO") enProceso++;
     else pendientes++;
 
-    if (prioridadStats[prioridad]) {
-      prioridadStats[prioridad].total++;
-      if (estado === "CUBIERTA") prioridadStats[prioridad].cubiertas++;
+    if (prioridadStats[t.prioridad]) {
+      prioridadStats[t.prioridad].total++;
+      if (t.estado === "CUBIERTA") {
+        prioridadStats[t.prioridad].cubiertas++;
+      }
     }
-
-    let nivel = "🔴";
-    if (cobertura >= 3) nivel = "🟢";
-    else if (cobertura >= 1) nivel = "🟡";
-
-    tareas.push({
-      requisito, 
-      tarea, 
-      clasificacion, 
-      prioridad, 
-      tecnicos, 
-      proveedores,
-      cobertura, 
-      estado, 
-      fechaProgramada: fechaFinal, 
-      observacion, 
-      nivel
-    });
-  }
-
-  const prioridades = Object.keys(prioridadStats).map(pri => {
-    const total = prioridadStats[pri].total;
-    const cub = prioridadStats[pri].cubiertas;
-    return { 
-      prioridad: pri, 
-      total, 
-      cubiertas: cub, 
-      porcentaje: total > 0 ? Math.round((cub / total) * 100) : 0 
-    };
+    
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${t.requisito || ""}</td>
+      <td>${t.tarea || ""}</td>
+      <td>${t.clasificacion || "—"}</td>
+      <td>${t.prioridad || ""}</td>
+      <td>${t.tecnicos !== undefined ? t.tecnicos : 0}</td>
+      <td>${t.proveedores !== undefined ? t.proveedores : 0}</td>
+      <td>${t.cobertura !== undefined ? t.cobertura : 0}</td>
+      <td>${t.nivel || "—"}</td>
+      <td><span class="estado ${estadoClase}">${t.estado || "PENDIENTE"}</span></td>
+      <td>${t.fechaProgramada || "—"}</td>
+    `;
+    tbody.appendChild(tr);
   });
 
-  const porcentajeGeneral = totalTareas > 0 ? Math.round((cubiertas / totalTareas) * 100) : 0;
-  const topCobertura = [...tareas].sort((a, b) => b.cobertura - a.cobertura).slice(0, 10);
+  const totalTareas = filtrados.length;
+  document.getElementById("totalTareas").textContent = totalTareas;
+  document.getElementById("cubiertas").textContent = cubiertas;
+  document.getElementById("enProceso").textContent = enProceso;
+  document.getElementById("pendientes").textContent = pendientes;
+  document.getElementById("totalTecnicos").textContent = totalTecnicos;
+  document.getElementById("totalProveedores").textContent = totalProveedores;
+  document.getElementById("porcentajeGeneral").textContent = totalTareas > 0 ? String(Math.round((cubiertas / totalTareas) * 100)) + "%" : "0%";
 
-  // Enviamos la nueva variable 'tecnicosCapacitados' al objeto de retorno
-  return { 
-    totalTareas, cubiertas, enProceso, pendientes, porcentajeGeneral, 
-    totalTecnicos, totalProveedores, tecnicosCapacitados, prioridades, topCobertura, tareas 
-  };
+  if (chartPrioridad && chartEstados && chartCobertura) {
+    const nuevosDatosPrioridad = Object.keys(prioridadStats).map(pri => {
+      const tot = prioridadStats[pri].total;
+      const cub = prioridadStats[pri].cubiertas;
+      return {
+        label: "Prioridad " + pri,
+        porcentaje: tot > 0 ? Math.round((cub / tot) * 100) : 0
+      };
+    });
+    chartPrioridad.data.labels = nuevosDatosPrioridad.map(x => x.label);
+    chartPrioridad.data.datasets[0].data = nuevosDatosPrioridad.map(x => x.porcentaje);
+    chartPrioridad.update();
+
+    chartEstados.data.datasets[0].data = [cubiertas, enProceso, pendientes];
+    chartEstados.update();
+
+    const topFiltrado = [...filtrados]
+      .sort((a, b) => (Number(b.cobertura) || 0) - (Number(a.cobertura) || 0))
+      .slice(0, 10);
+    
+    chartCobertura.data.labels = topFiltrado.map(x => cortarTexto(x.tarea, 25));
+    chartCobertura.data.datasets[0].data = topFiltrado.map(x => Number(x.cobertura) || 0);
+    chartCobertura.update();
+  }
 }
+
+function filtrarPorTarjeta(estadoSeleccionado) {
+  const selectorEstado = document.getElementById("filtroEstado");
+  if (selectorEstado) {
+    selectorEstado.value = estadoSeleccionado;
+    renderTabla();
+  }
+}
+
+function cortarTexto(txt,max){
+  if(!txt) return "";
+  return txt.length > max ? txt.substring(0,max) + "..." : txt;
+}
+</script>
+</body>
+</html>
